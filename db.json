@@ -1,0 +1,54 @@
+{
+  "users": [
+    {
+      "id": "8b2becf6-16b4-4f40-abd2-8c266f9ce346",
+      "name": "Pulkit",
+      "email": "pg1736@srmist.edu.in",
+      "password": "8d969eef6ecad3c29a3a629280e686cf0c3f5d5a86aff3ca12020c923adc6c92",
+      "createdAt": "2026-05-28T07:58:04.367Z"
+    }
+  ],
+  "profiles": [
+    {
+      "userId": "8b2becf6-16b4-4f40-abd2-8c266f9ce346",
+      "monthly_income": 50000,
+      "monthly_expense": 30000,
+      "savings": 20000,
+      "existing_loans": 0,
+      "credit_history_months": 24,
+      "defaults": 0,
+      "investment_goals": "Retirement Plan",
+      "risk_appetite": "Medium",
+      "time_horizon": 10,
+      "preferred_assets": [
+        "Stocks",
+        "Mutual Funds",
+        "Gold"
+      ],
+      "updatedAt": "2026-05-28T08:01:36.703Z"
+    }
+  ],
+  "activities": [
+    {
+      "id": "43247b72-15c7-442a-b759-a2dfbe1f7c0d",
+      "userId": "8b2becf6-16b4-4f40-abd2-8c266f9ce346",
+      "type": "ACCOUNT_CREATE",
+      "description": "User registered account successfully.",
+      "timestamp": "2026-05-28T07:58:04.367Z"
+    },
+    {
+      "id": "1a4d4919-78e0-4e9e-9f79-2d500acc0e83",
+      "userId": "8b2becf6-16b4-4f40-abd2-8c266f9ce346",
+      "type": "PROFILE_UPDATE",
+      "description": "Updated financial profile variables.",
+      "timestamp": "2026-05-28T08:01:27.485Z"
+    },
+    {
+      "id": "835cd3fb-d99a-41cd-9d08-26420e44bd2d",
+      "userId": "8b2becf6-16b4-4f40-abd2-8c266f9ce346",
+      "type": "PROFILE_UPDATE",
+      "description": "Updated financial profile variables.",
+      "timestamp": "2026-05-28T08:01:36.703Z"
+    }
+  ]
+}
