@@ -48,7 +48,7 @@ export default function App() {
   const handleAuthSuccess = (userData) => {
     setUser(userData);
     setDashboardSubView(null);
-    showToast(`Welcome to finSure, ${userData.name}!`, "success");
+    showToast(`Welcome to FinSure, ${userData.name}!`, "success");
     
     // Auto-evaluate the active applicant details with the logged-in name
     if (activeApplicant) {
@@ -160,7 +160,7 @@ export default function App() {
           <ShieldCheck size={28} className="app-logo" style={{ color: 'var(--primary)' }} />
           <div style={{ textAlign: 'left' }}>
             <h1 style={{ fontFamily: 'var(--font-display)', fontSize: '1.25rem', fontWeight: 800, margin: 0, background: 'none', WebkitTextFillColor: 'initial', color: 'var(--primary)' }}>
-              Fiserv finSure
+              FinSure
             </h1>
             <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase' }}>
               Approval Engine

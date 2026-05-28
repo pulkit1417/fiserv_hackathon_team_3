@@ -90,7 +90,7 @@ export default function AuthPage({ onAuthSuccess }) {
           </div>
           <div>
             <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '1.5rem', fontWeight: 800, margin: 0 }}>
-              Personalized finSure Setup
+              Personalized FinSure Setup
             </h2>
             <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: '0.25rem', maxWidth: '500px' }}>
               Please provide your basic details and financial baseline. We will use these numbers to customize your credit dashboard, EMI calculator, and loan recommendations.

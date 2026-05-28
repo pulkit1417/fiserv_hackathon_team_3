@@ -27,7 +27,7 @@ export default function ExplanationPanel({ evaluation, onBack }) {
     doc.setFont("Helvetica", "bold");
     doc.setFontSize(22);
     doc.setTextColor(234, 88, 12); // Orange
-    doc.text("finSure Credit Evaluation Report", margin, y);
+    doc.text("FinSure Credit Evaluation Report", margin, y);
     y += 8;
 
     doc.setFont("Helvetica", "normal");
@@ -199,7 +199,7 @@ export default function ExplanationPanel({ evaluation, onBack }) {
       });
     }
 
-    doc.save(`finSure-Credit-Report-${evaluation.input.name || 'Applicant'}.pdf`);
+    doc.save(`FinSure-Credit-Report-${evaluation.input.name || 'Applicant'}.pdf`);
   };
 
   if (!evaluation) {

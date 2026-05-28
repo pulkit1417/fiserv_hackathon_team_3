@@ -84,7 +84,7 @@ export default function DashboardView({ user, onNavigate }) {
               Welcome Back, {user.name}!
             </h1>
             <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)', marginTop: '0.4rem', maxWidth: '600px' }}>
-              Your finSure workspace is active. Below is your real-time risk profile preview compiled from your onboarding parameters. Select a workspace tab below to perform actions.
+              Your FinSure workspace is active. Below is your real-time risk profile preview compiled from your onboarding parameters. Select a workspace tab below to perform actions.
             </p>
           </div>
           <div className="glass-panel" style={{ padding: '0.75rem 1.25rem', backgroundColor: 'var(--bg-app)', borderStyle: 'dashed' }}>
