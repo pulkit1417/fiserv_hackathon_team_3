@@ -1,9 +1,57 @@
-/**
- * Simplified Micro-Credit Rule Engine
- * Implements the exact formulas and rules requested by the user.
- */
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
-export function evaluateApplicant(input) {
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const RULES_FILE = path.join(__dirname, 'rules.json');
+
+function getRules(passedRules) {
+  if (passedRules) return passedRules;
+  try {
+    const data = fs.readFileSync(RULES_FILE, 'utf8');
+    return JSON.parse(data);
+  } catch (error) {
+    return {
+      hard_rejects: {
+        min_monthly_income: 15000,
+        min_credit_history_months: 6,
+        max_defaults: 1
+      },
+      warnings: {
+        max_dti_ratio: 0.50
+      },
+      score_weights: {
+        base_score: 600,
+        dti_ranges: [
+          { max: 0.20, points: 100 },
+          { max: 0.35, points: 50 },
+          { max: 0.45, points: -20 },
+          { max: 1.00, points: -150 }
+        ],
+        credit_history_ranges: [
+          { min: 24, points: 80 },
+          { min: 12, points: 50 },
+          { min: 6, points: -30 },
+          { min: 0, points: -150 }
+        ],
+        defaults_ranges: [
+          { count: 0, points: 50 },
+          { count: 1, points: -100 },
+          { count: 2, points: -200 }
+        ]
+      },
+      decision_thresholds: {
+        approved_min_score: 750,
+        conditional_min_score: 600
+      }
+    };
+  }
+}
+
+export function evaluateApplicant(input, passedRules = null) {
+  const rules = getRules(passedRules);
+
   const {
     name,
     monthly_income,
@@ -42,38 +90,50 @@ export function evaluateApplicant(input) {
   const totalMonthlyOutflow = expense + existingEmi + newEmi;
   const dti = income > 0 ? (totalMonthlyOutflow / income) * 100 : 100;
   const dtiRounded = Math.round(dti * 10) / 10;
+  const dtiRatio = dtiRounded / 100;
 
   // 3. Credit Score Calculation
-  let score = 600;
+  const baseScore = rules.score_weights.base_score || 600;
+  let score = baseScore;
   const scoreBreakdown = [];
-  scoreBreakdown.push({ factor: "Base Score", change: 600, running: 600 });
+  scoreBreakdown.push({ factor: "Base Score", change: baseScore, running: baseScore });
 
-  // Positive Factors
-  if (dtiRounded < 30) {
-    score += 100;
-    scoreBreakdown.push({ factor: "DTI < 30%", change: 100, running: score });
+  // DTI points matching
+  let dtiPoints = 0;
+  if (rules.score_weights.dti_ranges) {
+    const range = rules.score_weights.dti_ranges.find(r => dtiRatio <= r.max);
+    if (range) dtiPoints = range.points;
   }
-  if (creditHistory > 24) {
-    score += 80;
-    scoreBreakdown.push({ factor: "Credit History > 24 months", change: 80, running: score });
-  }
-  if (defaultCount === 0) {
-    score += 50;
-    scoreBreakdown.push({ factor: "0 Defaults", change: 50, running: score });
-  }
+  score += dtiPoints;
+  scoreBreakdown.push({ factor: `DTI Ratio points (DTI: ${dtiRounded}%)`, change: dtiPoints, running: score });
 
-  // Negative Factors
-  if (dtiRounded > 50) {
-    score -= 150;
-    scoreBreakdown.push({ factor: "DTI > 50%", change: -150, running: score });
+  // History points matching
+  let historyPoints = 0;
+  if (rules.score_weights.credit_history_ranges) {
+    const range = [...rules.score_weights.credit_history_ranges]
+      .sort((a, b) => b.min - a.min)
+      .find(r => creditHistory >= r.min);
+    if (range) historyPoints = range.points;
   }
-  if (defaultCount >= 2) {
-    score -= 200;
-    scoreBreakdown.push({ factor: "Defaults >= 2", change: -200, running: score });
+  score += historyPoints;
+  scoreBreakdown.push({ factor: `Credit History points (${creditHistory} months)`, change: historyPoints, running: score });
+
+  // Defaults points matching
+  let defaultsPoints = 0;
+  if (rules.score_weights.defaults_ranges) {
+    const range = rules.score_weights.defaults_ranges.find(r => defaultCount === r.count)
+      || rules.score_weights.defaults_ranges.find(r => r.count === 2)
+      || { points: -200 };
+    if (range) defaultsPoints = range.points;
   }
-  if (income < 15000) {
+  score += defaultsPoints;
+  scoreBreakdown.push({ factor: `Defaults points (${defaultCount} count)`, change: defaultsPoints, running: score });
+
+  // Income penalty check
+  const minIncome = rules.hard_rejects.min_monthly_income || 15000;
+  if (income < minIncome) {
     score -= 80;
-    scoreBreakdown.push({ factor: "Income < ₹15,000", change: -80, running: score });
+    scoreBreakdown.push({ factor: `Income penalty (Income < ₹${minIncome.toLocaleString()})`, change: -80, running: score });
   }
 
   // Clamp score: 300 to 900
@@ -84,10 +144,13 @@ export function evaluateApplicant(input) {
   }
 
   // Determine Risk Category based on Score
+  const approvedMinScore = rules.decision_thresholds.approved_min_score || 750;
+  const conditionalMinScore = rules.decision_thresholds.conditional_min_score || 600;
+
   let riskCategory = "High Risk";
-  if (score >= 750) {
+  if (score >= approvedMinScore) {
     riskCategory = "Low Risk";
-  } else if (score >= 600) {
+  } else if (score >= conditionalMinScore) {
     riskCategory = "Medium Risk";
   }
 
@@ -95,93 +158,96 @@ export function evaluateApplicant(input) {
   const auditLog = [];
   let isRejected = false;
 
-  // DTI Rule: DTI > 50% -> Reject
-  if (dtiRounded > 50) {
+  // DTI Rule: DTI > max_dti_ratio -> Reject
+  const maxDtiRatio = rules.warnings.max_dti_ratio || 0.50;
+  if (dtiRatio > maxDtiRatio) {
     isRejected = true;
     auditLog.push({
-      rule: "DTI Ratio Check (Limit: 50%)",
+      rule: `DTI Ratio Check (Limit: ${maxDtiRatio * 100}%)`,
       passed: false,
-      details: `Projected DTI is ${dtiRounded}%, exceeding the limit of 50%.`,
+      details: `Projected DTI is ${dtiRounded}%, exceeding the limit of ${maxDtiRatio * 100}%.`,
       type: "reject"
     });
   } else if (dtiRounded >= 35) {
     auditLog.push({
-      rule: "DTI Ratio Check (Limit: 50%)",
+      rule: `DTI Ratio Check (Limit: ${maxDtiRatio * 100}%)`,
       passed: true,
-      details: `Projected DTI is ${dtiRounded}% (Medium Risk: 35-50% Review).`,
+      details: `Projected DTI is ${dtiRounded}% (Medium Risk: 35% to ${maxDtiRatio * 100}% Review).`,
       type: "warning"
     });
   } else {
     auditLog.push({
-      rule: "DTI Ratio Check (Limit: 50%)",
+      rule: `DTI Ratio Check (Limit: ${maxDtiRatio * 100}%)`,
       passed: true,
       details: `Projected DTI is ${dtiRounded}% (Good DTI: <35%).`,
       type: "pass"
     });
   }
 
-  // Defaults Rule: Defaults >= 2 -> Reject
-  if (defaultCount >= 2) {
+  // Defaults Rule: Defaults > max_defaults -> Reject
+  const maxDefaults = rules.hard_rejects.max_defaults || 1;
+  if (defaultCount > maxDefaults) {
     isRejected = true;
     auditLog.push({
-      rule: "Defaults Repayment Check (Limit: 2)",
+      rule: `Defaults Repayment Check (Limit: ${maxDefaults})`,
       passed: false,
-      details: `Applicant has ${defaultCount} defaults (Limit: Defaults < 2).`,
+      details: `Applicant has ${defaultCount} defaults (Limit: Defaults <= ${maxDefaults}).`,
       type: "reject"
     });
   } else if (defaultCount === 1) {
     auditLog.push({
-      rule: "Defaults Repayment Check (Limit: 2)",
+      rule: `Defaults Repayment Check (Limit: ${maxDefaults})`,
       passed: true,
       details: `Applicant has 1 default (Medium Risk impact).`,
       type: "warning"
     });
   } else {
     auditLog.push({
-      rule: "Defaults Repayment Check (Limit: 2)",
+      rule: `Defaults Repayment Check (Limit: ${maxDefaults})`,
       passed: true,
       details: `Applicant has 0 defaults (Good standing).`,
       type: "pass"
     });
   }
 
-  // Credit History Rule: < 6 months -> Risk (Reject)
-  if (creditHistory < 6) {
+  // Credit History Rule: < min_credit_history_months -> Reject
+  const minHistory = rules.hard_rejects.min_credit_history_months || 6;
+  if (creditHistory < minHistory) {
     isRejected = true;
     auditLog.push({
-      rule: "Credit History Duration Check (Min: 6m)",
+      rule: `Credit History Duration Check (Min: ${minHistory}m)`,
       passed: false,
-      details: `Credit history of ${creditHistory} months is below the minimum required 6 months.`,
+      details: `Credit history of ${creditHistory} months is below the minimum required ${minHistory} months.`,
       type: "reject"
     });
   } else if (creditHistory <= 24) {
     auditLog.push({
-      rule: "Credit History Duration Check (Min: 6m)",
+      rule: `Credit History Duration Check (Min: ${minHistory}m)`,
       passed: true,
-      details: `Credit history is ${creditHistory} months (Medium status: 6-24m).`,
+      details: `Credit history is ${creditHistory} months (Medium status: ${minHistory}-24m).`,
       type: "warning"
     });
   } else {
     auditLog.push({
-      rule: "Credit History Duration Check (Min: 6m)",
+      rule: `Credit History Duration Check (Min: ${minHistory}m)`,
       passed: true,
       details: `Credit history is ${creditHistory} months (Strong status: >24m).`,
       type: "pass"
     });
   }
 
-  // Income Check Rule: Income < 15,000 -> Reject
-  if (income < 15000) {
+  // Income Check Rule: Income < min_monthly_income -> Reject
+  if (income < minIncome) {
     isRejected = true;
     auditLog.push({
-      rule: "Minimum Income Check (Min: ₹15k)",
+      rule: `Minimum Income Check (Min: ₹${minIncome.toLocaleString()})`,
       passed: false,
-      details: `Income of ₹${income.toLocaleString()} is below the required ₹15,000.`,
+      details: `Income of ₹${income.toLocaleString()} is below the required ₹${minIncome.toLocaleString()}.`,
       type: "reject"
     });
   } else {
     auditLog.push({
-      rule: "Minimum Income Check (Min: ₹15k)",
+      rule: `Minimum Income Check (Min: ₹${minIncome.toLocaleString()})`,
       passed: true,
       details: `Income of ₹${income.toLocaleString()} is within safe parameters.`,
       type: "pass"
@@ -195,16 +261,16 @@ export function evaluateApplicant(input) {
   if (isRejected) {
     decision = "REJECT";
     const reasons = [];
-    if (dtiRounded > 50) reasons.push("Projected DTI exceeds 50%");
-    if (defaultCount >= 2) reasons.push("Too many defaults (2 or more)");
-    if (creditHistory < 6) reasons.push("Short credit history (<6 months)");
-    if (income < 15000) reasons.push("Income below ₹15,000 limit");
+    if (dtiRatio > maxDtiRatio) reasons.push(`Projected DTI exceeds ${maxDtiRatio * 100}%`);
+    if (defaultCount > maxDefaults) reasons.push(`Too many defaults (exceeds ${maxDefaults})`);
+    if (creditHistory < minHistory) reasons.push(`Short credit history (<${minHistory} months)`);
+    if (income < minIncome) reasons.push(`Income below ₹${minIncome.toLocaleString()} limit`);
     decisionReason = `Rejected due to: ${reasons.join(", ")}.`;
-  } else if (score >= 750) {
+  } else if (score >= approvedMinScore) {
     decision = "APPROVE";
     decisionReason = "Excellent risk score and low debt ratio. Loan is approved instantly.";
-  } else if (score >= 600) {
-    decision = "REVIEW"; // Review maps to conditional approval
+  } else if (score >= conditionalMinScore) {
+    decision = "REVIEW";
     decisionReason = "Moderate credit score. Application marked for manual underwriter review.";
   } else {
     decision = "REJECT";
@@ -259,8 +325,9 @@ export function evaluateApplicant(input) {
   };
 }
 
-export function evaluateBatch(applicants, rules) {
-  const results = applicants.map(app => evaluateApplicant(app));
+export function evaluateBatch(applicants, passedRules = null) {
+  const rules = getRules(passedRules);
+  const results = applicants.map(app => evaluateApplicant(app, rules));
   
   const stats = {
     total: results.length,

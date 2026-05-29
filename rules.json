@@ -5,37 +5,27 @@
     "max_defaults": 1
   },
   "warnings": {
-    "max_dti_ratio": 0.45
+    "max_dti_ratio": 0.50
   },
   "score_weights": {
     "base_score": 600,
     "dti_ranges": [
-      { "max": 0.20, "points": 100 },
-      { "max": 0.35, "points": 50 },
-      { "max": 0.45, "points": -20 },
-      { "max": 1.00, "points": -150 }
+      { "max": 0.30, "points": 100 },
+      { "max": 0.50, "points": 0 },
+      { "max": 999.00, "points": -150 }
     ],
     "credit_history_ranges": [
-      { "min": 24, "points": 120 },
-      { "min": 12, "points": 50 },
-      { "min": 6, "points": -30 },
-      { "min": 0, "points": -150 }
+      { "min": 25, "points": 80 },
+      { "min": 0, "points": 0 }
     ],
     "defaults_ranges": [
-      { "count": 0, "points": 100 },
-      { "count": 1, "points": -100 },
-      { "count": 2, "points": -250 }
-    ],
-    "existing_loans_ranges": [
-      { "count": 0, "points": 30 },
-      { "count": 1, "points": 10 },
-      { "count": 2, "points": 0 },
-      { "count": 4, "points": -50 },
-      { "count": 999, "points": -120 }
+      { "count": 0, "points": 50 },
+      { "count": 1, "points": 0 },
+      { "count": 2, "points": -200 }
     ]
   },
   "decision_thresholds": {
-    "approved_min_score": 650,
+    "approved_min_score": 750,
     "conditional_min_score": 600
   }
 }

@@ -11,7 +11,8 @@ import {
   FileText,
   Percent,
   Briefcase,
-  Sparkles
+  Sparkles,
+  Settings
 } from 'lucide-react';
 
 import AuthPage from './components/AuthPage';
@@ -21,6 +22,7 @@ import DashboardView from './components/DashboardView';
 import EmiCalculator from './components/EmiCalculator';
 import PortfolioPlanner from './components/PortfolioPlanner';
 import RecommendationEngine from './components/RecommendationEngine';
+import RuleConfigurator from './components/RuleConfigurator';
 
 
 import './App.css';
@@ -253,6 +255,15 @@ export default function App() {
             <Sparkles size={16} /> Recommendations
           </button>
 
+          <button 
+            type="button" 
+            className={`nav-tab-btn ${dashboardSubView === 'rules' ? 'active' : ''}`}
+            onClick={() => setDashboardSubView("rules")}
+            style={{ width: '100%', justifyContent: 'flex-start' }}
+          >
+            <Settings size={16} /> Rule Configurator
+          </button>
+
         </nav>
 
         {/* Footer sign out */}
@@ -274,39 +285,45 @@ export default function App() {
       <div style={{ flexGrow: 1, padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.5rem', overflowX: 'hidden' }}>
         
         {/* Top Navbar Header */}
-        <header className="glass-panel" style={{
-          padding: '0.75rem 1.25rem',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          zIndex: 40
-        }}>
-          <div style={{ textAlign: 'left' }}>
-            <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-              Micro-Credit Platform
-            </span>
-            <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '1.15rem', fontWeight: 800, margin: 0 }}>
-              {dashboardSubView === null ? "Personal Credit Dashboard" 
-                : dashboardSubView === 'form' ? "Stateless Risk & Amortization Evaluator" 
-                : dashboardSubView === 'result' ? "Credit Score & Amortization Repayments Decision"
-                : dashboardSubView === 'emi' ? "Smart EMI Simulator" 
-                : dashboardSubView === 'portfolio' ? "Debt Portfolio Planner" 
-                : "Smart Recommendations & Advisory"}
-            </h2>
-          </div>
-
-
-        </header>
+        {user && (
+          <header className="glass-panel" style={{
+            padding: '0.75rem 1.25rem',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            zIndex: 40
+          }}>
+            <div style={{ textAlign: 'left' }}>
+              <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                Micro-Credit Platform
+              </span>
+              <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '1.15rem', fontWeight: 800, margin: 0 }}>
+                {dashboardSubView === null ? "Personal Credit Dashboard" 
+                  : dashboardSubView === 'form' ? "Stateless Risk & Amortization Evaluator" 
+                  : dashboardSubView === 'result' ? "Credit Score & Amortization Repayments Decision"
+                  : dashboardSubView === 'emi' ? "Smart EMI Simulator" 
+                  : dashboardSubView === 'portfolio' ? "Debt Portfolio Planner" 
+                  : dashboardSubView === 'recommendations' ? "Smart Recommendations & Advisory"
+                  : "Dynamic Rule Configurator"}
+              </h2>
+            </div>
+          </header>
+        )}
 
         {/* View render */}
-        <main style={{ flexGrow: 1 }}>
+        <main style={{
+          flexGrow: 1,
+          display: !user ? 'flex' : 'block',
+          alignItems: !user ? 'center' : 'initial',
+          justifyContent: !user ? 'center' : 'initial'
+        }}>
           
           <div style={{ 
             display: 'flex', 
             flexDirection: 'column', 
             gap: '1.5rem', 
-            maxWidth: (dashboardSubView === null || dashboardSubView === 'recommendations' || dashboardSubView === 'result') ? '960px' : '640px', 
-            margin: '0 auto',
+            maxWidth: !user ? '960px' : (dashboardSubView === null || dashboardSubView === 'recommendations' || dashboardSubView === 'result' || dashboardSubView === 'rules') ? '960px' : '640px', 
+            margin: !user ? '0' : '0 auto',
             width: '100%'
           }}>
             {!user ? (
@@ -323,6 +340,8 @@ export default function App() {
               <PortfolioPlanner user={user} onBack={() => setDashboardSubView(null)} />
             ) : dashboardSubView === 'recommendations' ? (
               <RecommendationEngine user={user} onBack={() => setDashboardSubView(null)} />
+            ) : dashboardSubView === 'rules' ? (
+              <RuleConfigurator onBack={() => setDashboardSubView(null)} showToast={showToast} />
             ) : null}
           </div>
 

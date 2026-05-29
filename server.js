@@ -106,6 +106,10 @@ if (fs.existsSync(distPath)) {
   });
 }
 
-app.listen(PORT, () => {
-  console.log(`🚀 Credit Approval Backend running on port ${PORT}`);
-});
+if (!process.env.VERCEL) {
+  app.listen(PORT, () => {
+    console.log(`🚀 Credit Approval Backend running on port ${PORT}`);
+  });
+}
+
+export default app;
